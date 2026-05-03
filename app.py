@@ -4,6 +4,7 @@ Run with:  streamlit run app.py
 Then open: http://localhost:8501
 """
 
+import os
 import sys
 from pathlib import Path
 from datetime import datetime
@@ -13,6 +14,14 @@ import streamlit as st
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent))
+
+# On Streamlit Cloud, secrets live in st.secrets — inject into os.environ
+# so the rest of the app (config.py / odds_api.py) can read them normally.
+try:
+    if "ODDS_API_KEY" in st.secrets:
+        os.environ["ODDS_API_KEY"] = st.secrets["ODDS_API_KEY"]
+except Exception:
+    pass
 
 ET = ZoneInfo("America/New_York")
 
