@@ -15,7 +15,7 @@ from data.nba_stats import fetch_todays_game_schedule, fetch_current_season_game
 from data.odds_api import fetch_game_odds, fetch_player_prop_odds, american_to_prob
 from data.weather import fetch_todays_weather
 from features.team_features import build_prediction_row, get_feature_cols
-from features.player_features import build_player_prediction_row, get_player_feature_cols
+from features.player_features import build_player_prediction_row, get_player_feature_cols, find_player_in_logs
 
 logger = logging.getLogger(__name__)
 
@@ -276,7 +276,7 @@ def get_picks(upcoming: bool = False) -> list:
         props = []
 
         for player_name in game_players:
-            plogs = current_player_logs[current_player_logs["PLAYER_NAME"] == player_name]
+            plogs = find_player_in_logs(player_name, current_player_logs)
             if plogs.empty:
                 continue
             player_team = plogs["TEAM_ABBREVIATION"].iloc[-1]
@@ -296,12 +296,18 @@ def get_picks(upcoming: bool = False) -> list:
                 continue
             X_p = feat_df_p[aligned_p].reindex(columns=player_feat_cols, fill_value=0.0)
 
-            stat_display = {"pts": "PTS", "reb": "REB", "ast": "AST", "fg3m": "3PM"}
-            for stat_key, stat_label in stat_display.items():
+            # model_key → (odds_api_stat_name, display_label)
+            stat_map = {
+                "pts":  ("points",   "PTS"),
+                "reb":  ("rebounds", "REB"),
+                "ast":  ("assists",  "AST"),
+                "fg3m": ("threes",   "3PM"),
+            }
+            for stat_key, (odds_stat, stat_label) in stat_map.items():
                 model = prop_models.get(stat_key)
                 if model is None:
                     continue
-                pkey = (player_name, stat_key)
+                pkey = (player_name, odds_stat)   # match Odds API naming
                 if pkey not in prop_lookup:
                     continue
                 over_info = prop_lookup[pkey].get("over", {})
