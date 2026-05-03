@@ -1,6 +1,4 @@
 .env
 cache/
-saved_models/
 __pycache__/
 *.pyc
-*.pkl
